@@ -36,7 +36,7 @@ export function SellerDashboard() {
     queryKey: ["my-lands", account],
     queryFn: async () => {
       if (!account) return [];
-      const res = await api.get(`/lands/owner/${account}`);
+      const res = await api.get(`/lands/owner/${account}?limit=100`);
       return res.data.data;
     },
     enabled: !!account,

@@ -33,8 +33,8 @@ echo [2.5/4] Setting up Roles and Admin Permissions...
 call npx hardhat run scripts/setup-roles.js --network localhost
 
 echo.
-echo [3/4] Starting Backend Express API Server (Port 5000)...
-start "2. Backend API Server (5000)" cmd /k "cd /d "%BACKEND_DIR%" && npm run dev"
+echo [3/4] Starting Backend Express API Server (Port 5001)...
+start "2. Backend API Server (5001)" cmd /k "cd /d "%BACKEND_DIR%" && npm run dev"
 
 echo.
 echo [4/4] Starting Frontend Vite Client (Port 5173)...
@@ -52,7 +52,7 @@ echo.
 echo ====================================================================
 echo   SUCCESS! All services are active:
 echo     - Hardhat RPC Node : http://127.0.0.1:8545
-echo     - Backend API      : http://localhost:5000
+echo     - Backend API      : http://localhost:5001
 echo     - Frontend Web App : http://localhost:5173
 echo.
 echo   Keep the terminal windows open while testing.

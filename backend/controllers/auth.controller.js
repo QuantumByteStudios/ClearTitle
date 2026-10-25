@@ -1,6 +1,6 @@
 // controllers/auth.controller.js
 const authService = require("../services/auth.service");
-const { catchAsync } = require("../utils/errorHandler");
+const { catchAsync, AppError } = require("../utils/errorHandler");
 
 /**
  * GET /auth/nonce/:address

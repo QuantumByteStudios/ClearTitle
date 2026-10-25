@@ -43,8 +43,7 @@ const connectDB = async () => {
     console.error("   2. Replace MONGODB_URI with your MongoDB Atlas connection string");
     console.error("      (e.g., mongodb+srv://username:password@cluster0.abcde.mongodb.net/landregistry)");
     console.error("   3. Or install MongoDB Community locally.\n");
-    // Don't crash hard immediately so the user can read the instruction
-    setTimeout(() => process.exit(1), 1000);
+    throw error;
   }
 };
 

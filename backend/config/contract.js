@@ -22,6 +22,17 @@ let adminSigner;
 let contract;
 let contractReadOnly;
 
+// Hardhat's first-nonce address. deploy.js skips it on purpose.
+const PLACEHOLDER_ADDRESS = "0x5fbdb2315678afecb367f032d93f642f64180aa3";
+
+function resolveContractAddress(envAddress, artifactAddress) {
+  const configured = (envAddress || "").trim();
+  if (!configured || configured.toLowerCase() === PLACEHOLDER_ADDRESS) {
+    return artifactAddress;
+  }
+  return configured;
+}
+
 /**
  * Initialize the ethers.js provider and contract instances.
  * Call this once when the server starts (in server.js).
@@ -49,7 +60,7 @@ const initContract = () => {
   }
 
   const { abi, contractAddress } = JSON.parse(fs.readFileSync(abiPath, "utf8"));
-  const address = process.env.CONTRACT_ADDRESS || contractAddress;
+  const address = resolveContractAddress(process.env.CONTRACT_ADDRESS, contractAddress);
 
   // ── 4. Read-only contract (for getLand, getOwnershipHistory, etc.) ──
   contractReadOnly = new ethers.Contract(address, abi, provider);

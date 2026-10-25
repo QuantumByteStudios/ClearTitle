@@ -131,6 +131,22 @@ async function main() {
       fs.writeFileSync(backendEnvPath, envContent);
       console.log("📄 backend/.env CONTRACT_ADDRESS updated!");
     }
+
+    const frontendEnvPath = path.join(__dirname, "../../frontend/.env");
+    if (fs.existsSync(frontendEnvPath)) {
+      let frontendEnv = fs.readFileSync(frontendEnvPath, "utf8");
+      if (/^VITE_CONTRACT_ADDRESS=.*/m.test(frontendEnv)) {
+        frontendEnv = frontendEnv.replace(
+          /^VITE_CONTRACT_ADDRESS=.*/m,
+          `VITE_CONTRACT_ADDRESS=${contractAddress}`
+        );
+      } else {
+        if (!frontendEnv.endsWith("\n")) frontendEnv += "\n";
+        frontendEnv += `VITE_CONTRACT_ADDRESS=${contractAddress}\n`;
+      }
+      fs.writeFileSync(frontendEnvPath, frontendEnv);
+      console.log("📄 frontend/.env VITE_CONTRACT_ADDRESS updated!");
+    }
   }
 
   console.log("\n========================================");

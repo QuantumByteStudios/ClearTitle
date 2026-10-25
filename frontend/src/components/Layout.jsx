@@ -75,6 +75,18 @@ export function Layout({ children }) {
     navigate("/login");
   };
 
+  const hasSession = Boolean(localStorage.getItem("token"));
+
+  const handleConnectClick = () => {
+    if (!localStorage.getItem("token")) {
+      navigate("/login");
+      return;
+    }
+    connectWallet().catch((err) => {
+      toast.error(err.message || "Could not connect wallet");
+    });
+  };
+
   const navItems = [
     { label: "Public Search", path: "/verify", icon: FileSearch, badge: "Live" },
     ...(currentRole === "seller"
@@ -201,19 +213,30 @@ export function Layout({ children }) {
                   <CopyButton value={account} label="Copy address" />
                 </div>
 
-                <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground font-medium text-[11px]">Role:</span>
-                  <select
-                    value={currentRole}
-                    onChange={(e) => handleRoleChange(e.target.value)}
-                    className="text-xs font-bold bg-muted border border-input rounded-md px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer capitalize shadow-2xs"
+                {hasSession ? (
+                  <div className="pt-2 border-t border-border/60 flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground font-medium text-[11px]">Role:</span>
+                    <select
+                      value={currentRole}
+                      onChange={(e) => handleRoleChange(e.target.value)}
+                      className="text-xs font-bold bg-muted border border-input rounded-md px-2 py-1 text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer capitalize shadow-2xs"
+                    >
+                      <option value="seller">Seller</option>
+                      <option value="buyer">Buyer</option>
+                      <option value="admin">Admin</option>
+                      <option value="public">Public</option>
+                    </select>
+                  </div>
+                ) : (
+                  <Button
+                    onClick={() => navigate("/login")}
+                    variant="glow"
+                    size="sm"
+                    className="w-full h-8 text-xs font-bold"
                   >
-                    <option value="seller">Seller</option>
-                    <option value="buyer">Buyer</option>
-                    <option value="admin">Admin</option>
-                    <option value="public">Public</option>
-                  </select>
-                </div>
+                    Sign in
+                  </Button>
+                )}
               </div>
 
               <Button
@@ -228,14 +251,14 @@ export function Layout({ children }) {
             </div>
           ) : (
             <Button
-              onClick={connectWallet}
+              onClick={handleConnectClick}
               disabled={isConnecting}
               variant="glow"
               size="sm"
               className="w-full h-10 font-bold text-xs"
             >
               <Wallet className="w-4 h-4 mr-2" />
-              {isConnecting ? "Connecting..." : "Connect MetaMask"}
+              {isConnecting ? "Connecting..." : hasSession ? "Connect MetaMask" : "Sign in"}
             </Button>
           )}
         </div>

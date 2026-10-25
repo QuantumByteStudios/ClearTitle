@@ -38,15 +38,15 @@ export function useWallet() {
 
     if (window.ethereum) {
       window.ethereum.on("accountsChanged", (accounts) => {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
         if (accounts.length > 0) {
           setAccount(accounts[0].toLowerCase());
-          window.location.reload();
         } else {
           setAccount(null);
           setSigner(null);
-          localStorage.removeItem("token");
-          localStorage.removeItem("user");
         }
+        window.location.assign("/login");
       });
 
       window.ethereum.on("chainChanged", () => {

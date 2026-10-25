@@ -21,7 +21,7 @@ export function BuyerDashboard() {
   const { data: transfers = [], isLoading, refetch } = useQuery({
     queryKey: ["buyer-transfers", account],
     queryFn: async () => {
-      const res = await api.get("/transfers");
+      const res = await api.get("/transfers?limit=100");
       return res.data.data.filter(
         (t) => t.toAddress.toLowerCase() === account?.toLowerCase()
       );

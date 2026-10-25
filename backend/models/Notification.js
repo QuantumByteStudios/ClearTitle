@@ -44,6 +44,7 @@ const NotificationSchema = new mongoose.Schema(
         "LAND_VERIFIED",
         "LAND_REJECTED",
         "LAND_FROZEN",
+        "LAND_DISPUTED",
         "TRANSFER_INITIATED",    // Buyer receives this
         "TRANSFER_ACCEPTED",     // Seller receives this
         "TRANSFER_APPROVED",     // Both receive this

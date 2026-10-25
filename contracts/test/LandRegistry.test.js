@@ -409,6 +409,25 @@ describe("LandRegistry Contract", function () {
         landRegistry.connect(seller).rejectLand(1n, "Some reason")
       ).to.be.reverted;
     });
+
+    it("✅ should free the survey number so it can be registered again", async function () {
+      await landRegistry.connect(registrar).rejectLand(1n, "Documents are forged");
+      expect(
+        await landRegistry.getLandIdBySurveyNumber(SAMPLE_LAND.surveyNumber)
+      ).to.equal(0n);
+
+      await landRegistry.connect(seller).registerLand(
+        SAMPLE_LAND.surveyNumber, SAMPLE_LAND.area, SAMPLE_LAND.location,
+        SAMPLE_LAND.price, SAMPLE_LAND.ipfsHash
+      );
+
+      const land = await landRegistry.getLand(2n);
+      expect(land.surveyNumber).to.equal(SAMPLE_LAND.surveyNumber);
+      expect(land.status).to.equal(LandStatus.PENDING);
+      expect(
+        await landRegistry.getLandIdBySurveyNumber(SAMPLE_LAND.surveyNumber)
+      ).to.equal(2n);
+    });
   });
 
   // ===========================================================
@@ -473,6 +492,25 @@ describe("LandRegistry Contract", function () {
         landRegistry
           .connect(seller)
           .initiateTransfer(1n, buyer.address, ethers.parseEther("2"))
+      ).to.be.revertedWithCustomError(landRegistry, "LandIsFrozen");
+    });
+
+    it("❌ cannot accept a transfer after the land is frozen", async function () {
+      await landRegistry.connect(seller).initiateTransfer(1n, buyer.address, SAMPLE_LAND.price);
+      await landRegistry.connect(registrar).freezeLand(1n);
+
+      await expect(
+        landRegistry.connect(buyer).acceptTransfer(1n)
+      ).to.be.revertedWithCustomError(landRegistry, "LandIsFrozen");
+    });
+
+    it("❌ cannot approve a transfer the buyer already accepted if the land is then frozen", async function () {
+      await landRegistry.connect(seller).initiateTransfer(1n, buyer.address, SAMPLE_LAND.price);
+      await landRegistry.connect(buyer).acceptTransfer(1n);
+      await landRegistry.connect(registrar).freezeLand(1n);
+
+      await expect(
+        landRegistry.connect(registrar).approveTransfer(1n)
       ).to.be.revertedWithCustomError(landRegistry, "LandIsFrozen");
     });
   });
@@ -780,6 +818,25 @@ describe("LandRegistry Contract", function () {
       await landRegistry.connect(registrar).markDisputed(1n);
       await expect(
         landRegistry.connect(seller).initiateTransfer(1n, buyer.address, SAMPLE_LAND.price)
+      ).to.be.revertedWithCustomError(landRegistry, "LandIsDisputed");
+    });
+
+    it("❌ cannot accept a transfer after the land is disputed", async function () {
+      await landRegistry.connect(seller).initiateTransfer(1n, buyer.address, SAMPLE_LAND.price);
+      await landRegistry.connect(registrar).markDisputed(1n);
+
+      await expect(
+        landRegistry.connect(buyer).acceptTransfer(1n)
+      ).to.be.revertedWithCustomError(landRegistry, "LandIsDisputed");
+    });
+
+    it("❌ cannot approve a transfer the buyer already accepted if the land is then disputed", async function () {
+      await landRegistry.connect(seller).initiateTransfer(1n, buyer.address, SAMPLE_LAND.price);
+      await landRegistry.connect(buyer).acceptTransfer(1n);
+      await landRegistry.connect(registrar).markDisputed(1n);
+
+      await expect(
+        landRegistry.connect(registrar).approveTransfer(1n)
       ).to.be.revertedWithCustomError(landRegistry, "LandIsDisputed");
     });
   });

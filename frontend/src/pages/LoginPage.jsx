@@ -10,7 +10,7 @@ import { Building2, Wallet, ArrowRight, ShieldCheck, CheckCircle2, Cpu, Sparkles
 import { toast } from "sonner";
 
 export function LoginPage() {
-  const { connectWallet, isConnecting } = useWallet();
+  const { connectWallet, isConnecting, switchToLocalhost } = useWallet();
   const [selectedRole, setSelectedRole] = useState("seller");
   const [isSigning, setIsSigning] = useState(false);
   const navigate = useNavigate();
@@ -21,6 +21,7 @@ export function LoginPage() {
 
       // 1. Request Wallet Connection
       const { account, signer } = await connectWallet();
+      await switchToLocalhost();
       toast.loading("Requesting cryptographic nonce from server...", { id: "login" });
 
       // 2. Fetch Nonce from Backend

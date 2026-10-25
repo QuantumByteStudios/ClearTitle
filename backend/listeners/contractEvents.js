@@ -41,12 +41,12 @@ class EventListener {
 
       // 1. Replay historical blocks missed while offline
       await this.catchUpHistoricalEvents(syncState.lastProcessedBlock, currentBlock);
-
-      // 2. Attach continuous listener for new live blocks
-      this.subscribeLiveEvents();
     } catch (err) {
       logger.error(`❌ Failed to start Event Listener: ${err.message}`);
     }
+
+    // Live events still need a subscription if historical replay stopped early.
+    this.subscribeLiveEvents();
   }
 
   /**
@@ -70,7 +70,13 @@ class EventListener {
       try {
         const events = await this.contract.queryFilter("*", start, end);
         for (const event of events) {
-          await this.processEvent(event);
+          try {
+            await this.processEvent(event);
+          } catch (eventError) {
+            logger.error(
+              `Skipping ${event.fragment?.name || "event"} in tx ${event.transactionHash}: ${eventError.message}`
+            );
+          }
         }
 
         await SyncState.updateBlock(end);
@@ -159,6 +165,13 @@ class EventListener {
         this.onLandUnfrozen(landId, unfrozenBy, eventPayload)
       );
     });
+
+    // Event 11: LandDisputed
+    this.contract.on("LandDisputed", async (landId, markedBy, timestamp, eventPayload) => {
+      await this.handleWithConfirmation(eventPayload, () =>
+        this.onLandDisputed(landId, markedBy, eventPayload)
+      );
+    });
   }
 
   /**
@@ -166,9 +179,11 @@ class EventListener {
    */
   async handleWithConfirmation(eventPayload, handler) {
     try {
-      const txReceipt = await eventPayload.getTransactionReceipt();
-      if (this.confirmations > 1 && txReceipt) {
-        await txReceipt.wait(this.confirmations);
+      if (this.confirmations > 1 && eventPayload?.transactionHash) {
+        await this.provider.waitForTransaction(
+          eventPayload.transactionHash,
+          this.confirmations
+        );
       }
 
       await handler();
@@ -218,6 +233,9 @@ class EventListener {
         break;
       case "LandUnfrozen":
         await this.onLandUnfrozen(args[0], args[1], event);
+        break;
+      case "LandDisputed":
+        await this.onLandDisputed(args[0], args[1], event);
         break;
       default:
         logger.debug(`Unhandled event: ${eventName}`);
@@ -327,16 +345,22 @@ class EventListener {
     const numericLandId = Number(landId);
     logger.info(`🔄 Event: TransferInitiated [ID: ${numericLandId}, From: ${from} -> To: ${to}]`);
 
-    await Transfer.create({
-      landId: numericLandId,
-      fromAddress: from.toLowerCase(),
-      toAddress: to.toLowerCase(),
-      price: price.toString(),
-      state: "INITIATED",
-      initiatedTxHash: event.transactionHash,
-      initiatedBlock: event.blockNumber,
-      initiatedAt: new Date(),
-    });
+    await Transfer.findOneAndUpdate(
+      { initiatedTxHash: event.transactionHash },
+      {
+        $setOnInsert: {
+          landId: numericLandId,
+          fromAddress: from.toLowerCase(),
+          toAddress: to.toLowerCase(),
+          price: price.toString(),
+          state: "INITIATED",
+          initiatedTxHash: event.transactionHash,
+          initiatedBlock: event.blockNumber,
+          initiatedAt: new Date(),
+        },
+      },
+      { upsert: true }
+    );
 
     // Alert Buyer
     await sendNotification(
@@ -503,6 +527,36 @@ class EventListener {
     await writeAuditLog({
       action: "LAND_FROZEN",
       performedBy: frozenBy,
+      landId: numericLandId,
+      txHash: event.transactionHash,
+      blockNumber: event.blockNumber,
+    });
+  }
+
+  async onLandDisputed(landId, markedBy, event) {
+    const numericLandId = Number(landId);
+    logger.warn(`⚠️ Event: LandDisputed [ID: ${numericLandId}]`);
+
+    const land = await Land.findOneAndUpdate(
+      { landId: numericLandId },
+      { status: "DISPUTED" },
+      { new: true }
+    );
+
+    if (land) {
+      await sendNotification(
+        land.ownerAddress,
+        "Land Record Disputed",
+        `Land #${numericLandId} has been marked disputed by the registrar. Transfers are halted.`,
+        "LAND_DISPUTED",
+        numericLandId,
+        `/lands/${numericLandId}`
+      );
+    }
+
+    await writeAuditLog({
+      action: "LAND_DISPUTED",
+      performedBy: markedBy,
       landId: numericLandId,
       txHash: event.transactionHash,
       blockNumber: event.blockNumber,

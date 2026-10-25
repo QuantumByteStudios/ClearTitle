@@ -519,6 +519,9 @@ contract LandRegistry is AccessControl, Pausable, ReentrancyGuard {
         );
 
         land.status = LandStatus.REJECTED;
+        // A rejected filing is dead. Free the survey number so a corrected
+        // deed can be registered again.
+        delete _surveyNumberToLandId[land.surveyNumber];
 
         _ownershipHistory[landId].push(HistoryEntry({
             owner:           land.currentOwner,
@@ -647,9 +650,9 @@ contract LandRegistry is AccessControl, Pausable, ReentrancyGuard {
         whenNotPaused
         landExists(landId)
         onlyLandOwner(landId)
-        onlyVerifiedLand(landId)
         notFrozen(landId)
         notDisputed(landId)
+        onlyVerifiedLand(landId)
     {
         if (buyer == address(0))  revert ZeroAddress();
         if (buyer == msg.sender)  revert CannotTransferToSelf();
@@ -692,6 +695,9 @@ contract LandRegistry is AccessControl, Pausable, ReentrancyGuard {
         external
         whenNotPaused
         landExists(landId)
+        notFrozen(landId)
+        notDisputed(landId)
+        onlyVerifiedLand(landId)
     {
         TransferRequest storage request = _transferRequests[landId];
 
@@ -729,6 +735,9 @@ contract LandRegistry is AccessControl, Pausable, ReentrancyGuard {
         nonReentrant
         onlyRole(REGISTRAR_ROLE)
         landExists(landId)
+        notFrozen(landId)
+        notDisputed(landId)
+        onlyVerifiedLand(landId)
     {
         TransferRequest storage request = _transferRequests[landId];
         Land storage land = _lands[landId];

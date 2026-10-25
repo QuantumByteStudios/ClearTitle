@@ -17,14 +17,15 @@ export function PublicVerifyPage() {
   const { data: initialLands = [], isLoading, refetch } = useQuery({
     queryKey: ["public-lands"],
     queryFn: async () => {
-      const res = await api.get("/lands");
+      const res = await api.get("/lands?limit=100");
       return res.data.data || [];
     },
   });
 
-  const handleSearch = async (e) => {
-    if (e) e.preventDefault();
-    if (!searchTerm.trim()) {
+  const handleSearch = async (e, term = searchTerm) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const query = term.trim();
+    if (!query) {
       setSearchResult(null);
       return;
     }
@@ -34,9 +35,9 @@ export function PublicVerifyPage() {
       setSearchResult(null);
 
       // Numeric ID lookup
-      if (!isNaN(searchTerm)) {
+      if (!isNaN(query)) {
         try {
-          const res = await api.get(`/lands/${searchTerm.trim()}`);
+          const res = await api.get(`/lands/${query}`);
           if (res.data.data) {
             setSearchResult([res.data.data]);
             return;
@@ -47,7 +48,7 @@ export function PublicVerifyPage() {
       }
 
       // Text search
-      const searchRes = await api.get(`/lands?search=${encodeURIComponent(searchTerm.trim())}`);
+      const searchRes = await api.get(`/lands?limit=100&search=${encodeURIComponent(query)}`);
       if (searchRes.data.data && searchRes.data.data.length > 0) {
         setSearchResult(searchRes.data.data);
       } else {
@@ -121,13 +122,13 @@ export function PublicVerifyPage() {
       {/* Suggested Quick Filter Chips - Slim row */}
       <div className="flex items-center gap-2 text-xs shrink-0 px-1 overflow-x-auto py-0.5">
         <span className="text-[11px] font-bold text-muted-foreground uppercase tracking-wider">Quick:</span>
-        {["1", "SN-MH-2024", "Plot 104", "Green Valley"].map((tag) => (
+        {["Whitefield", "Bandra", "Jayanagar", "Noida"].map((tag) => (
           <button
             key={tag}
             type="button"
             onClick={() => {
               setSearchTerm(tag);
-              handleSearch();
+              handleSearch(null, tag);
             }}
             className="text-[11px] font-mono bg-card hover:bg-primary hover:text-primary-foreground text-foreground px-2 py-0.5 rounded-md border border-border/70 shadow-2xs transition-colors shrink-0 font-medium"
           >

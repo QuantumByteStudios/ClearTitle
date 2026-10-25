@@ -17,7 +17,7 @@ if not exist node_modules (
     call npm install
 )
 
-echo [INFO] Starting Backend Server on port 5000...
+echo [INFO] Starting Backend Server on port 5001...
 call npm run dev
 pause
 
